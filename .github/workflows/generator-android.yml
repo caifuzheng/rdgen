@@ -499,17 +499,6 @@ jobs:
             flutter build apk "--${{ matrix.job.reltype }}" --target-platform android-arm64 --split-per-abi
             mv build/app/outputs/flutter-apk/app-arm64-v8a-${{ matrix.job.reltype }}.apk ../rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}${{ matrix.job.suffix }}.apk
             ;;
-            armv7-linux-androideabi)
-              mkdir -p ./flutter/android/app/src/main/jniLibs/armeabi-v7a
-              cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/libc++_shared.so ./flutter/android/app/src/main/jniLibs/armeabi-v7a/
-              cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/armeabi-v7a/librustdesk.so
-              echo -n "${{ env.custom }}" | cat > ./flutter/assets/custom_.txt
-              #sed -i '/^    - assets\//a\    - assets/custom_.txt' ./flutter/pubspec.yaml
-              # build flutter
-              pushd flutter
-              flutter build apk "--${{ matrix.job.reltype }}" --target-platform android-arm --split-per-abi
-              mv build/app/outputs/flutter-apk/app-armeabi-v7a-${{ matrix.job.reltype }}.apk ../rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}${{ matrix.job.suffix }}.apk
-            ;;
             x86_64-linux-android)
               mkdir -p ./flutter/android/app/src/main/jniLibs/x86_64
               cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android/libc++_shared.so ./flutter/android/app/src/main/jniLibs/x86_64/
@@ -518,10 +507,39 @@ jobs:
               #sed -i '/^    - assets\//a\    - assets/custom_.txt' ./flutter/pubspec.yaml
               # build flutter
               pushd flutter
+              flutter pub get
+              REMOTE_DESKTOP_FILE="lib/src/desktop/remote_desktop.dart"
+              if [ -f "$REMOTE_DESKTOP_FILE" ]; then
+              cat > patch.txt << 'EOF'
+              // 已自动隐藏远程控制底部状态栏
+              // Positioned(
+              //   bottom: 0,
+              //   left: 0,
+              //   right: 0,
+              //   child: RemoteControlBar(controller: controller),
+              // ),
+              EOF
+              sed -i '/Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: RemoteControlBar(controller: controller),
+              ),/r patch.txt' "$REMOTE_DESKTOP_FILE"
+              sed -i '/Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: RemoteControlBar(controller: controller),
+              ),/d' "$REMOTE_DESKTOP_FILE"
+              rm patch.txt
+              echo "✅ 安卓远程控制栏已成功隐藏"
+              else
+              echo "⚠️ 未找到remote_desktop.dart文件，跳过隐藏控制栏补丁"
+              fi
               flutter build apk "--${{ matrix.job.reltype }}" --target-platform android-x64 --split-per-abi
-              mv build/app/outputs/flutter-apk/app-x86_64-${{ matrix.job.reltype }}.apk ../rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}${{ matrix.job.suffix }}.apk
-            ;;
-            i686-linux-android)
+              mv build/app/outputs/flutter-apk/app-x86_64-${{ matrix.job.reltype }}.apk ../rustdesk-${{ env.VERSION }}-${{ matrix.job.reltype }}.apk
+              popd
+              i686-linux-android)
               mkdir -p ./flutter/android/app/src/main/jniLibs/x86
               cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/i686-linux-android/libc++_shared.so ./flutter/android/app/src/main/jniLibs/x86/
               cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/x86/librustdesk.so
@@ -529,6 +547,35 @@ jobs:
               #sed -i '/^    - assets\//a\    - assets/custom_.txt' ./flutter/pubspec.yaml
               # build flutter
               pushd flutter
+              flutter pub get
+              REMOTE_DESKTOP_FILE="lib/src/desktop/remote_desktop.dart"
+              if [ -f "$REMOTE_DESKTOP_FILE" ]; then
+              cat > patch.txt << 'EOF'
+              // 已自动隐藏远程控制底部状态栏
+              // Positioned(
+              //   bottom: 0,
+              //   left: 0,
+              //   right: 0,
+              //   child: RemoteControlBar(controller: controller),
+              // ),
+              EOF
+              sed -i '/Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: RemoteControlBar(controller: controller),
+              ),/r patch.txt' "$REMOTE_DESKTOP_FILE"
+              sed -i '/Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: RemoteControlBar(controller: controller),
+              ),/d' "$REMOTE_DESKTOP_FILE"
+              rm patch.txt
+              echo "✅ 安卓远程控制栏已成功隐藏"
+              else
+              echo "⚠️ 未找到remote_desktop.dart文件，跳过隐藏控制栏补丁"
+              fi
               flutter build apk "--${{ matrix.job.reltype }}" --target-platform android-x86 --split-per-abi
               mv build/app/outputs/flutter-apk/app-x86-${{ matrix.job.reltype }}.apk ../rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}${{ matrix.job.suffix }}.apk
             ;;
